@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-14
+
 ### Added
 
 - Electrolux group appliances (Electrolux, AEG, Zanussi, Frigidaire) in Gladys
@@ -37,4 +39,5 @@ the notes of the version's GitHub Release.
 - English, French, German and Spanish everywhere, including the
   documentation.
 
-[Unreleased]: https://github.com/guim31/gladys-electrolux/commits/main
+[Unreleased]: https://github.com/guim31/gladys-electrolux/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-electrolux/releases/tag/v1.0.1
