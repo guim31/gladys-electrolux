@@ -1,77 +1,81 @@
+// -----------------------------------------------------------------------------
+// The "Electrolux appliances" widget: the running cycles first, with their
+// time left, in the language of the request, within the core's budget.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_KEY } from '../src/hub.js';
+import { formatMinutes } from '../src/widgets.js';
+import { idOf } from './helpers/fake-electrolux.js';
+import { createWorld } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function content(world, language = 'fr') {
+  const ack = await world.gladys.fake.widgetGet(WIDGET_KEY, { settings: {}, language });
+  assert.equal(ack.success, true);
+  assert.deepEqual(validateWidgetContent(ack.data.content), []);
+  return ack.data.content;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
+test('the cycles under way are listed, the running one first, with its time left', async () => {
+  const world = await createWorld();
+  try {
+    const r = world.electrolux.states[idOf('wm')].properties.reported;
+    r.applianceState = 'RUNNING';
+    r.cyclePhase = 'RINSE';
+    r.timeToEnd = 4500;
+    r.stopTime = -1;
+    await world.app.hub.refresh();
+    const widget = await content(world);
+    assert.deepEqual(widget.components[0], {
+      type: 'text',
+      variant: 'heading',
+      text: '2 en marche',
+    });
+    const [first, ...others] = widget.components[1].items;
+    assert.equal(first.title, 'Lave-linge');
+    assert.deepEqual(first.badge, { text: '1 h 15', color: 'primary' });
+    assert.match(first.subtitle, /^Synthetics · Rinçage · fin à \d\d:\d\d$/);
+    // The double oven runs too; the washer-dryer waits for its delayed start.
+    const titles = others.map((item) => item.title);
+    assert.ok(titles.includes('Double four') && titles.includes('Lavante-séchante'));
+    const delayed = others.find((item) => item.title === 'Lavante-séchante');
+    assert.match(delayed.subtitle, /départ dans 1 h 00/);
+    // Never the fridge, the robot or the air conditioner: not cycles.
+    assert.ok(!titles.includes('Réfrigérateur') && !titles.includes('Robot'));
+  } finally {
+    await world.close();
+  }
 });
 
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
+test('the widget speaks the language of the request', async () => {
+  const world = await createWorld();
   try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+    const widget = await content(world, 'es');
+    const items = widget.components.at(-1).items;
+    assert.ok(items.some((item) => /empieza en/.test(item.subtitle)));
+  } finally {
+    await world.close();
+  }
+});
+
+test('nothing added, nothing running: one line says so', async () => {
+  const world = await createWorld({ addAll: false });
+  try {
+    assert.match((await content(world)).components[0].text, /onglet Découverte/);
+    await world.gladys.fake.deviceCreated(world.device('cr'));
+    assert.equal(
+      (await content(world, 'en')).components[0].text,
+      'No appliance running right now.',
     );
   } finally {
-    simulateLanSession(true);
+    await world.close();
   }
 });
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('durations read naturally', () => {
+  assert.equal(formatMinutes(42), '42 min');
+  assert.equal(formatMinutes(65), '1 h 05');
+  assert.equal(formatMinutes(-3), '0 min');
 });

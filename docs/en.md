@@ -1,61 +1,219 @@
-# Demo Devices Template
+# Electrolux / AEG
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Follow and control your connected **Electrolux group** appliances in Gladys —
+Electrolux, AEG, Zanussi, Frigidaire: washing machines, washer-dryers, tumble
+dryers, dishwashers, ovens, fridges, portable and window air conditioners, air
+purifiers, dehumidifiers and Pure i9 robot vacuums. The integration uses the
+official **Electrolux Group Developer API** (developer.electrolux.one), with
+the account of your Electrolux or AEG app.
 
-## What you get
+> **Developed without the hardware nor an Electrolux account: feedback
+> welcome.** The code is checked against real answers of the API published
+> with Electrolux's official SDK, not yet on a real appliance.
+>
+> Community integration, **not affiliated with Electrolux Group**. Electrolux,
+> AEG, Zanussi and Frigidaire are trademarks of their owners.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## Overview
+
+Each appliance of your account becomes a Gladys device. Its features are built
+from what the appliance declares to Electrolux (its "capabilities"), not from a
+list of models: a washing machine without a door sensor gets no door feature, a
+fridge with a third compartment gets its setpoint.
+
+- **Washing machines, washer-dryers, dryers, dishwashers**: state (off, ready,
+  delayed start, running, paused, finished, alarm), program, cycle phase,
+  remaining time, expected end, time before a delayed start, door, "remote
+  start armed", alerts.
+- **Ovens** (single or double cavity): state, program, cavity temperature,
+  setpoint (read only), food probe, remaining time, expected end, door, light.
+- **Fridges**: setpoint of each compartment (fridge, freezer, extra
+  compartment), door of each compartment, fast mode, humidity, water and air
+  filters, alerts (door left open, temperature alarm).
+- **Air conditioners** (classic and the newer "DAM" portable models): on/off,
+  mode, setpoint, fan speed, room temperature, filter.
+- **Air purifiers**: on/off, mode, fan speed, PM2.5, PM10, volatile organic
+  compounds, CO2, humidity, temperature, filter life, when the model has them.
+- **Dehumidifiers**: on/off, humidity, filter. **Robot vacuums**: state and
+  battery. **Hobs and hoods**: state and alerts.
+
+Plus a dashboard widget of the running cycles, two scene triggers ("cycle
+finished", "appliance alert") and a scene action to pause, resume, stop — and,
+when you allow it, start — a cycle.
+
+## Requirements
+
+- Gladys **5.1.0** or later.
+- Your appliances paired in the **Electrolux** or **AEG** app (My Electrolux,
+  My AEG, Electrolux Kitchen…), with a password on the account (an account
+  created only with Google or Apple sign-in cannot log in to the portal: add a
+  password from the app first).
+- An internet connection: Electrolux has no local API, everything goes
+  through the Electrolux cloud.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+1. Go to the **Electrolux developer portal** (developer.electrolux.one) and
+   sign in with the account of your app.
+2. In the dashboard, **create an API key**. Copy it.
+3. Still in the dashboard, **generate a token pair** (an access token and a
+   refresh token). Copy the **refresh token**: the access token is not needed.
+4. In Gladys, open **Integrations → Electrolux / AEG → Configuration**, paste
+   the **API key** and the **refresh token**, choose the **language** of the
+   feature names and save.
+5. Click **Test the connection**: the message lists your appliances and the
+   API calls made over the last 24 hours.
+6. Open the **Discover** tab and add the appliances you want.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+**The refresh token is single use.** Each time the integration renews its
+access (every 12 hours), Electrolux gives a new refresh token and the old one
+stops working. The integration keeps the current one in its own storage
+(`/data`), so you paste a token **only once**. If you paste a different one
+later, it replaces the stored one. Do not reuse in another tool the token you
+pasted in Gladys: one of them would lose its access.
 
-## Actions
+**Remote start of washing machines** is **off** by default. Switch on "Allow
+remote start of washing machines" only if you want a scene to start a washing
+machine (see "Commands and safety").
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+## What each device does
 
-## Scenes
+| Feature                                                   | Appliances                                       | Values                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| State                                                     | all                                              | Off, Ready to start, Delayed start, Running, Paused, Finished, Alarm, Not connected… |
+| Alerts                                                    | when the appliance reports them                  | The active alerts in words ("Salt missing", "Door left open"), "—" when none         |
+| Program, cycle phase                                      | laundry, dishwashers, ovens                      | Program name as Electrolux names it (English), phase in your language                |
+| Remaining time, delayed start in                          | laundry, dishwashers, ovens                      | Minutes                                                                              |
+| Expected end                                              | laundry, dishwashers, ovens                      | Time of day ("14:35"), "—" when nothing runs                                         |
+| Door                                                      | laundry, dishwashers, ovens, fridge compartments | Open / closed                                                                        |
+| Remote start armed                                        | laundry, dishwashers                             | On when remote start is enabled on the appliance                                     |
+| Temperature, setpoint, food probe                         | ovens                                            | °C, read only                                                                        |
+| Light                                                     | ovens                                            | On / off (controllable)                                                              |
+| Setpoint, fast mode                                       | fridge compartments                              | °C within the appliance's range / on-off (controllable)                              |
+| On/Off, mode, setpoint, fan speed                         | air conditioners                                 | Controllable                                                                         |
+| On/Off, mode, fan speed                                   | air purifiers                                    | Controllable (fan speed in Manual mode only)                                         |
+| PM2.5, PM10, VOC, CO2, humidity, temperature, filter life | air purifiers                                    | When the model measures them                                                         |
+| Humidity, filter                                          | fridges, dehumidifiers                           | % / Good, Buy soon, Replace, Clean                                                   |
+| Battery                                                   | robot vacuums                                    | % (six levels)                                                                       |
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Each appliance also shows a **cloud** badge, or **unreachable** when the
+appliance is not connected to the Electrolux cloud; its other values then stay
+at the last known ones.
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+## Commands and safety
 
-## Dashboard
+The rule is the one of the Miele integration: **nothing that heats is started
+remotely**.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+- **Ovens and hobs**: read only, except the oven light. An oven may be
+  **stopped** by the scene action (the safe direction), never started nor set.
+- **Dryers and washer-dryers**: pause and stop only. No start, no resume (it
+  would heat again).
+- **Dishwashers**: pause, resume, stop. No remote start.
+- **Washing machines**: pause, resume, stop, and **start** only when all three
+  are true: "Allow remote start of washing machines" is on in Gladys, remote
+  start is armed **on the machine** (you loaded it, chose the program and
+  pressed the remote start button), and the machine is ready to start.
+- **Fridges, air conditioners, purifiers, dehumidifiers**: the device features
+  are controllable (setpoints, modes, on/off).
+
+Before sending anything, the integration checks that the appliance is
+connected, that its remote control is enabled, and that the appliance accepts
+the command in its current state (Electrolux describes it in the
+capabilities). Otherwise the command is refused with a clear message instead
+of an error from Electrolux.
+
+## Refresh and quotas
+
+The Electrolux API allows **5000 calls a day per API key**, 10 per second and 5
+at once. The integration stays well below:
+
+- it listens to the **live stream** of Electrolux: a change (a cycle ending, a
+  door opening) arrives within seconds, for one call per connection;
+- it reads the whole account every **30 minutes** as a safety net;
+- when the live stream is unavailable, it reads as often as **2000 calls a
+  day** allow: about every 2 minutes with one or two appliances, every 12 minutes
+  with fifteen;
+- reads stop by themselves at 80 % of the daily quota (commands keep a
+  margin), and after a "too many requests" answer from Electrolux, until the
+  delay it asks for.
+
+A full read costs one call plus one per appliance; the capabilities of an
+appliance are read once, then only after a firmware update. The Gladys poll of
+the devices (once a minute) is only a fallback: it is skipped when the
+integration read recently.
+
+## Widget
+
+Add the **Electrolux appliances** widget to a dashboard: it lists the
+washing machines, dryers, dishwashers and ovens that are running, waiting for a
+delayed start, paused, in alarm, finished or ready to start — the running ones
+first, with the time left as a badge, the program, the phase and the expected
+end. When nothing runs, one line says so. It follows the language of your
+Gladys interface.
+
+## Scene triggers and actions
+
+- **Trigger "Electrolux cycle finished"**: a washing machine, dryer, dishwasher
+  or oven reached the end of its program. Filter on an appliance, or leave
+  empty for all. Variables: appliance name, program.
+- **Trigger "Electrolux appliance alert"**: an appliance raises a new alert
+  (door left open, water leak, salt missing, filter to replace, alarm…). One
+  event per new alert. Variables: appliance name, alert in words, alert code.
+- **Action "Control an Electrolux cycle"**: start (washing machine, if
+  allowed), pause, resume or stop the program of an appliance. Output:
+  "command sent".
+
+## Scene examples
+
+- **Laundry done**: trigger "Electrolux cycle finished" on the washing machine
+  → send "The washing is done ({{triggerEvent.data.program}})" to the family.
+- **Off-peak washing**: in the evening, load the machine, choose the program
+  and press remote start on it. A scene at 22:30 (off-peak hours) runs the
+  action "Control an Electrolux cycle" → start.
+- **Fridge door**: trigger "Electrolux appliance alert" on the fridge → send
+  "{{triggerEvent.data.device_name}}: {{triggerEvent.data.alert}}".
+- **Cool the bedroom**: when the bedroom temperature goes above 26 °C, switch
+  the air conditioner on in cooling mode at 24 °C.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"Electrolux refused the API key or the tokens"**: the refresh token was
+  spent elsewhere or revoked. Generate a new token pair on the portal and
+  paste the new refresh token in the configuration.
+- **"Electrolux API quota reached"**: another tool uses the same API key, or
+  many restarts happened. Reads resume by themselves; create a separate API
+  key for each tool.
+- **No appliance**: check that the appliances are paired in the Electrolux or
+  AEG app with the same account, then click **Test the connection**.
+- **A command is refused**: the message says why — remote control disabled on
+  the appliance, appliance not connected, command not accepted in its current
+  state (pause it first to stop it), or remote start not allowed.
+- **Values change late**: the live stream may be unavailable for your key;
+  the integration then reads every few minutes (see "Refresh and quotas").
+- **Logs**: they are quiet on purpose. Set `LOG_LEVEL=debug` to see every
+  read and every state sent.
+
+## Limitations
+
+- Developed without the hardware nor an account: the behaviour on real
+  appliances is still to be confirmed. Feedback is welcome.
+- Program names come from Electrolux, in English.
+- Air conditioner modes Gladys does not know (Eco, for example) are not
+  offered; the mode feature then shows no value.
+- Fridges report their setpoints; few report the measured temperature, shown
+  only when the appliance gives it.
+- Robot vacuums are read only (state and battery); hoods and hobs show their
+  state and alerts.
+- Programs are chosen on the appliance: the integration does not select a
+  program nor its options.
+- The quota figures come from the developer portal as reported by other
+  projects; Electrolux may change them.
+
+## Data and privacy
+
+The API key and the refresh token you paste stay in the Gladys configuration;
+the current tokens are kept in the integration's own storage (`/data`, readable
+by the integration only). None of them ever appears in the logs. The
+integration talks to `api.developer.electrolux.one` and to the live stream URL
+Electrolux gives, nothing else.

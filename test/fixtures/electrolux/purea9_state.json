@@ -1,0 +1,26 @@
+{
+  "applianceId": "900000015000000000000015",
+  "connectionState": "Connected",
+  "status": "enabled",
+  "properties": {
+    "reported": {
+      "Workmode": "Auto",
+      "Fanspeed": 3,
+      "PM1": 2,
+      "PM2_5": 3,
+      "PM10": 4,
+      "TVOC": 120,
+      "ECO2": 640,
+      "Humidity": 47,
+      "Temp": 21,
+      "FilterLife": 82,
+      "FilterType": 48,
+      "DoorOpen": false,
+      "UILight": true,
+      "SafetyLock": false,
+      "Ionizer": false,
+      "SignalStrength": "GOOD",
+      "deviceId": "900000015000000000000015"
+    }
+  }
+}

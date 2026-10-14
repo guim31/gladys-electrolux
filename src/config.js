@@ -1,45 +1,43 @@
 // -----------------------------------------------------------------------------
-// Integration configuration.
+// Integration configuration: the defaults (mirroring the manifest
+// `config_schema`) and the normalization of what Gladys sends.
 //
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
-//
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// The refresh token configured here is only the starting point: it rotates
+// at each refresh, and the current one lives in /data
+// (src/electrolux/token-store.js).
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+import { LANGUAGES, pickLanguage } from './i18n.js';
+
+export { LANGUAGES };
+
+// Must match the `default` values of the manifest (test/manifest.test.js).
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  api_key: '',
+  refresh_token: '',
+  allow_remote_start: false,
+  language: 'fr',
 };
 
+/** Gladys stores the values as text: a toggle may arrive as "true". */
+function toBoolean(value) {
+  return value === true || value === 'true' || value === '1' || value === 1;
+}
+
 /**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
+ * @param {Record<string, unknown>} [raw] config as Gladys sends it
  */
 export function normalizeConfig(raw = {}) {
+  const text = (value) => (typeof value === 'string' ? value.trim() : '');
   return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    api_key: text(raw.api_key),
+    refresh_token: text(raw.refresh_token),
+    allow_remote_start: toBoolean(raw.allow_remote_start ?? DEFAULT_CONFIG.allow_remote_start),
+    language: pickLanguage(raw.language ?? DEFAULT_CONFIG.language),
   };
+}
+
+/** Whether the API key and the refresh token are filled in. */
+export function hasCredentials(config) {
+  return config.api_key !== '' && config.refresh_token !== '';
 }
