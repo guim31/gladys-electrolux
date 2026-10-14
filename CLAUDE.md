@@ -31,16 +31,27 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          entry point: SDK client + src/app.js + connect()
+src/app.js                        every SDK handler, wired on a Gladys client (real or fake)
+src/hub.js                        live picture of the account: reads, stream, timer, states, triggers, commands
+src/appliances.js                 one Gladys device per appliance: features from the capabilities, states
+src/capabilities.js               flatten the capabilities (3 shapes), read/write paths, triggers
+src/commands.js                   program and feature commands: safety, consent and availability gates
+src/command-error.js              a refused command, with its message in the four languages
+src/scenes.js                     scene action handlers (manifest `scene_actions`), trigger keys
+src/widgets.js                    dashboard widget "Electrolux appliances" (manifest `widgets`)
+src/i18n.js                       every text, in en / fr / de / es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/issues.js                     repeated failures logged once, recovery once
+src/electrolux/constants.js       API endpoints, quota, appliance families, state vocabulary
+src/electrolux/client.js          REST client: x-api-key, token refresh, call queue, quota, 429
+src/electrolux/token-store.js     rotating tokens in /data/electrolux-auth.json (mode 600)
+src/electrolux/livestream.js      Server-Sent Events stream: parser, reconnection, watchdog
+scripts/probe.mjs                 real API probe, read only, for a machine with network
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, SDK fake Gladys + a fake Electrolux (test/helpers/)
+test/fixtures/electrolux/         real API answers from the official SDK's tests (Apache-2.0), anonymized
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +81,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, feature names,
+  widget, and `docs/en.md` / `fr.md` / `de.md` / `es.md`, with the same
+  sections. `test/i18n.test.js` enforces it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +246,56 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Electrolux / AEG : l'API et ses pièges (14/10/2026)
+
+Développée sans appareil ni compte, et **sans réseau vers Electrolux** : le proxy de la session refuse
+`developer.electrolux.one` et `api.developer.electrolux.one`. Tout est vérifié sur les réponses réelles
+publiées avec le SDK officiel (`electrolux-oss/electrolux-group-developer-sdk`, Apache-2.0), reprises en
+fixtures anonymisées. `scripts/probe.mjs` éprouve le vrai client depuis une machine qui a le réseau.
+
+- **Authentification** : clé d'API (`x-api-key`) + jeton d'accès Bearer (JWT, 12 h) à chaque appel. Le
+  jeton se renouvelle par `POST /api/v1/token/refresh` `{ refreshToken }` → `{ accessToken, refreshToken }`.
+  **Le jeton de rafraîchissement est à usage unique** : le nouveau va dans `/data` aussitôt, et l'ancien est
+  mort. Deux clients avec le même jeton s'excluent (la sonde l'avertit). Le fichier garde l'empreinte
+  SHA-256 du jeton collé : un autre jeton collé dans la config remplace la paire stockée.
+- **403 peut vouloir dire « jeton expiré »** (relevé par electrolux-to-mqtt) : 401 et 403 → un
+  rafraîchissement, un nouvel essai. Un refus du rafraîchissement (400/401/403/404) = nouvelle paire
+  à créer sur le portail.
+- **Quota** : 5000 appels par jour et par clé, 10 par seconde, 5 simultanés (chiffres du portail
+  rapportés par electrolux-to-mqtt, page inaccessible d'ici). Les appels passent un par un, espacés de
+  150 ms ; les lectures périodiques visent 2000 appels/jour (période = 86 400 s × (1 + N) / 2000, 2 min
+  au mieux) ; le client refuse les lectures à 80 % du quota et tout après un 429 (Retry-After, sinon
+  15 min doublées). Les capacités (`/info`) ne se relisent que si `applianceInfo.capabilityHash` change.
+- **Trois formes de capacités** : chemins plats (`userSelections/programUID`), objets imbriqués sans type
+  (`fridge.targetTemperatureC`), objets DAM (`type: object` + `properties`). `src/capabilities.js` les
+  aplatit en chemins `a/b` ; l'état `reported` et le flux SSE utilisent les mêmes chemins.
+- **Appareils DAM** (id `1:…`, climatiseurs mobiles récents) : commandes enveloppées
+  `{ commands: [ … ] }`, valeurs en minuscules (`on`, `cool`, `fanOnly`), plage `range: [min, max, pas]`.
+- **Les `triggers` de `applianceState` disent quelles valeurs d'`executeCommand` sont acceptées** dans
+  l'état courant (RUNNING → PAUSE ; PAUSED → RESUME, STOPRESET…). Arrêter un lave-linge en marche exige
+  une pause d'abord.
+- **`remoteControl`** : `ENABLED` = départ à distance armé sur la machine, seul état qui autorise une
+  commande de programme ; `NOT_SAFETY_RELEVANT_ENABLED` laisse passer les réglages, pas les programmes.
+- **Connexion** : `reported.connectivityState` est la valeur vivante (le SSE l'envoie) ;
+  `connectionState` de premier niveau peut rester « connected » (fixture du sèche-linge).
+- **Départ différé** : `stopTime` compte jusqu'à la fin, `startTime` jusqu'au départ (`-1` = non défini),
+  `timeToEnd` = durée du programme.
+- **Flux SSE** : `GET /api/v1/configurations/livestream` donne l'URL ; chaque trame est
+  `data: { applianceId, property, value }`, une propriété par trame. Chaque connexion coûte un appel :
+  reconnexion à partir de 30 s, chien de garde à 15 min.
+- **Purificateur Muju** : `PM2_5_approximate` est dans l'état mais pas dans les capacités ; les capteurs
+  sont donc déclarés aussi quand l'état donne un nombre.
+- **Climatiseurs** : le mode `ECO` n'a pas d'équivalent Gladys (`AC_MODE`) ; il n'est pas proposé.
+- **Sécurité** (choix de Guilhem, comme Miele) : rien qui chauffe n'est démarré ni repris (four, plaque,
+  sèche-linge, lavante-séchante) ; un four peut être arrêté ; le départ d'un lave-linge exige l'option
+  `allow_remote_start` (désactivée par défaut) **et** `remoteControl: ENABLED`.
+
+## Pièges découverts sur le cœur et le SDK (14/10/2026)
+
+- Un texte `caption` de widget est tronqué à **80 caractères** (`validateWidgetContent` le signale) :
+  les messages d'état longs passent en `body` (300).
+- `units_by_category` de la table des couples reproduit une **liste imbriquée** du cœur pour
+  `pm25-sensor`, `pm10-sensor` et `formaldehyd-sensor` : le cœur ne contrôle à la découverte que la liste
+  globale des unités ; le test de conformité aplatit la liste.
+- Le faux Gladys du SDK renvoie le contenu d'un widget sous `ack.data.content`.

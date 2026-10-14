@@ -1,177 +1,389 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Electrolux / AEG",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Electrolux and AEG appliances: cycles, time left, fridges, air conditioners and purifiers.",
+    "fr": "Électroménager Electrolux et AEG : cycles, temps restant, frigo, climatiseurs, purificateurs.",
+    "de": "Electrolux- und AEG-Geräte: Programme, Restzeit, Kühlschrank, Klimageräte, Luftreiniger.",
+    "es": "Electrodomésticos Electrolux y AEG: ciclos, tiempo restante, frigorífico, climatizadores."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-electrolux:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-electrolux/main/cover.png",
+  "categories": ["appliances"],
+  "transports": ["cloud"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Before you start",
+        "fr": "Avant de commencer",
+        "de": "Bevor du anfängst",
+        "es": "Antes de empezar"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Electrolux has no local API: everything goes through the Electrolux cloud, with the account of the Electrolux or AEG app. Sign in to the Electrolux developer portal with that account, create an API key, then generate a token pair (access and refresh tokens). Paste the API key and the refresh token below and save. The refresh token changes at each use: the integration keeps the current one, so paste it here only once.",
+        "fr": "Electrolux n'a pas d'API locale : tout passe par le cloud Electrolux, avec le compte de l'application Electrolux ou AEG. Connectez-vous avec ce compte au portail développeur Electrolux, créez une clé d'API, puis générez une paire de jetons (jeton d'accès et jeton de rafraîchissement). Collez ci-dessous la clé d'API et le jeton de rafraîchissement, puis enregistrez. Le jeton de rafraîchissement change à chaque usage : l'intégration garde le jeton courant, collez-le donc une seule fois.",
+        "de": "Electrolux hat keine lokale API: Alles läuft über die Electrolux-Cloud, mit dem Konto der Electrolux- oder AEG-App. Melde dich mit diesem Konto im Electrolux-Entwicklerportal an, erstelle einen API-Schlüssel und erzeuge dann ein Token-Paar (Zugriffs- und Aktualisierungstoken). Füge unten den API-Schlüssel und das Aktualisierungstoken ein und speichere. Das Aktualisierungstoken ändert sich bei jeder Nutzung: Die Integration behält das aktuelle, füge es also nur einmal ein.",
+        "es": "Electrolux no tiene API local: todo pasa por la nube de Electrolux, con la cuenta de la aplicación Electrolux o AEG. Inicie sesión con esa cuenta en el portal de desarrolladores de Electrolux, cree una clave de API y genere un par de tokens (token de acceso y token de actualización). Pegue abajo la clave de API y el token de actualización y guarde. El token de actualización cambia en cada uso: la integración conserva el actual, así que péguelo una sola vez."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://developer.electrolux.one/dashboard",
+          "label": {
+            "en": "Electrolux developer portal",
+            "fr": "Portail développeur Electrolux",
+            "de": "Electrolux-Entwicklerportal",
+            "es": "Portal de desarrolladores de Electrolux"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
+      "key": "api_key",
+      "type": "secret",
       "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "label": {
+        "en": "API key",
+        "fr": "Clé d'API",
+        "de": "API-Schlüssel",
+        "es": "Clave de API"
+      },
+      "description": {
+        "en": "API key created on the Electrolux developer portal.",
+        "fr": "Clé d'API créée sur le portail développeur Electrolux.",
+        "de": "Im Electrolux-Entwicklerportal erstellter API-Schlüssel.",
+        "es": "Clave de API creada en el portal de desarrolladores de Electrolux."
+      }
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
+      "key": "refresh_token",
+      "type": "secret",
       "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "label": {
+        "en": "Refresh token",
+        "fr": "Jeton de rafraîchissement",
+        "de": "Aktualisierungstoken",
+        "es": "Token de actualización"
+      },
+      "description": {
+        "en": "Refresh token generated with the API key. Paste a new one only if Electrolux refuses the current one.",
+        "fr": "Jeton de rafraîchissement généré avec la clé. N'en collez un nouveau que si Electrolux refuse le jeton courant.",
+        "de": "Mit dem Schlüssel erzeugtes Aktualisierungstoken. Füge nur dann ein neues ein, wenn Electrolux das aktuelle ablehnt.",
+        "es": "Token de actualización generado con la clave. Pegue uno nuevo solo si Electrolux rechaza el actual."
+      }
     },
     {
-      "key": "unit",
+      "key": "allow_remote_start",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "label": {
+        "en": "Allow remote start of washing machines",
+        "fr": "Autoriser le départ à distance des lave-linge",
+        "de": "Fernstart von Waschmaschinen erlauben",
+        "es": "Permitir el inicio remoto de lavadoras"
+      },
+      "description": {
+        "en": "Off by default. When on, a scene may start a washing machine whose remote start is armed on the machine. Never an oven, a dryer or a washer-dryer.",
+        "fr": "Désactivé par défaut. Activé, une scène peut démarrer un lave-linge dont le départ à distance est armé sur la machine. Jamais un four, un sèche-linge ni une lavante-séchante.",
+        "de": "Standardmäßig aus. Eingeschaltet darf eine Szene eine Waschmaschine starten, deren Fernstart an der Maschine aktiviert ist. Nie einen Backofen, Trockner oder Waschtrockner.",
+        "es": "Desactivado por defecto. Activado, una escena puede iniciar una lavadora cuyo inicio remoto está activado en la máquina. Nunca un horno, una secadora ni una lavadora-secadora."
+      }
+    },
+    {
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
       "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+      "default": "fr",
+      "label": {
+        "en": "Language",
+        "fr": "Langue",
+        "de": "Sprache",
+        "es": "Idioma"
       },
-      "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "description": {
+        "en": "Feature names of new devices, states and widget. Program names come from Electrolux, in English.",
+        "fr": "Noms des fonctionnalités des nouveaux appareils, états et widget. Les programmes viennent d'Electrolux, en anglais.",
+        "de": "Funktionsnamen neuer Geräte, Zustände und Widget. Programmnamen kommen von Electrolux, auf Englisch.",
+        "es": "Nombres de las funciones de los nuevos aparatos, estados y widget. Los programas vienen de Electrolux, en inglés."
+      },
+      "options": [
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "cycle_finished",
+      "label": {
+        "en": "Electrolux cycle finished",
+        "fr": "Cycle Electrolux terminé",
+        "de": "Electrolux-Programm beendet",
+        "es": "Ciclo Electrolux terminado"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A washing machine, dryer, dishwasher or oven reached the end of its program.",
+        "fr": "Un lave-linge, sèche-linge, lave-vaisselle ou four a terminé son programme.",
+        "de": "Eine Waschmaschine, ein Trockner, Geschirrspüler oder Backofen hat das Programm beendet.",
+        "es": "Una lavadora, secadora, lavavajillas u horno ha terminado su programa."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Appliance",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Aparato"
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "device_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Appliance name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del aparato"
+          }
+        },
+        {
+          "key": "program",
+          "type": "string",
+          "label": {
+            "en": "Program",
+            "fr": "Programme",
+            "de": "Programm",
+            "es": "Programa"
+          }
+        }
+      ]
+    },
+    {
+      "key": "appliance_alert",
+      "label": {
+        "en": "Electrolux appliance alert",
+        "fr": "Alerte d'un appareil Electrolux",
+        "de": "Warnung eines Electrolux-Geräts",
+        "es": "Alerta de un aparato Electrolux"
+      },
+      "description": {
+        "en": "An appliance raises a new alert: door left open, water leak, salt missing, filter, alarm…",
+        "fr": "Un appareil lève une nouvelle alerte : porte restée ouverte, fuite d'eau, sel manquant, filtre, alarme…",
+        "de": "Ein Gerät meldet eine neue Warnung: Tür offen, Wasserleck, Salz fehlt, Filter, Alarm…",
+        "es": "Un aparato emite una nueva alerta: puerta abierta, fuga de agua, falta sal, filtro, alarma…"
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Appliance",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Aparato"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "device_name",
+          "type": "string",
+          "label": {
+            "en": "Appliance name",
+            "fr": "Nom de l'appareil",
+            "de": "Gerätename",
+            "es": "Nombre del aparato"
+          }
+        },
+        {
+          "key": "alert",
+          "type": "string",
+          "label": {
+            "en": "Alert",
+            "fr": "Alerte",
+            "de": "Warnung",
+            "es": "Alerta"
+          }
+        },
+        {
+          "key": "code",
+          "type": "string",
+          "label": {
+            "en": "Alert code",
+            "fr": "Code de l'alerte",
+            "de": "Warncode",
+            "es": "Código de la alerta"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "appliance_command",
+      "label": {
+        "en": "Control an Electrolux cycle",
+        "fr": "Piloter un cycle Electrolux",
+        "de": "Electrolux-Programm steuern",
+        "es": "Controlar un ciclo Electrolux"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Start (washing machine, if allowed), pause, resume or stop a program. Never starts what heats.",
+        "fr": "Démarre (lave-linge, si autorisé), met en pause, reprend ou arrête un programme. Jamais ce qui chauffe.",
+        "de": "Startet (Waschmaschine, falls erlaubt), pausiert, setzt fort oder stoppt ein Programm. Nie was heizt.",
+        "es": "Inicia (lavadora, si se permite), pausa, reanuda o detiene un programa. Nunca lo que calienta."
+      },
+      "timeout_seconds": 20,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Appliance",
+            "fr": "Appareil",
+            "de": "Gerät",
+            "es": "Aparato"
+          },
           "required": true
+        },
+        {
+          "key": "command",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "Command",
+            "fr": "Commande",
+            "de": "Befehl",
+            "es": "Orden"
+          },
+          "options": [
+            {
+              "value": "start",
+              "label": {
+                "en": "Start",
+                "fr": "Démarrer",
+                "de": "Starten",
+                "es": "Iniciar"
+              }
+            },
+            {
+              "value": "pause",
+              "label": {
+                "en": "Pause",
+                "fr": "Mettre en pause",
+                "de": "Pausieren",
+                "es": "Pausar"
+              }
+            },
+            {
+              "value": "resume",
+              "label": {
+                "en": "Resume",
+                "fr": "Reprendre",
+                "de": "Fortsetzen",
+                "es": "Reanudar"
+              }
+            },
+            {
+              "value": "stop",
+              "label": {
+                "en": "Stop",
+                "fr": "Arrêter",
+                "de": "Stoppen",
+                "es": "Detener"
+              }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "sent",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Command sent",
+            "fr": "Commande envoyée",
+            "de": "Befehl gesendet",
+            "es": "Orden enviada"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "running_appliances",
+      "label": {
+        "en": "Electrolux appliances",
+        "fr": "Appareils Electrolux",
+        "de": "Electrolux-Geräte",
+        "es": "Aparatos Electrolux"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Appliances running, time left and expected end.",
+        "fr": "Appareils en marche, temps restant et fin prévue.",
+        "de": "Laufende Geräte, Restzeit und voraussichtliches Ende.",
+        "es": "Aparatos en marcha, tiempo restante y fin previsto."
+      },
+      "icon": "clock"
     }
   ]
 }

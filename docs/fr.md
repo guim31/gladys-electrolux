@@ -1,67 +1,233 @@
-# Template de démonstration
+# Electrolux / AEG
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Suivez et pilotez dans Gladys votre électroménager connecté du **groupe
+Electrolux** — Electrolux, AEG, Zanussi, Frigidaire : lave-linge, lavantes-
+séchantes, sèche-linge, lave-vaisselle, fours, réfrigérateurs, climatiseurs
+mobiles et de fenêtre, purificateurs d'air, déshumidificateurs et aspirateurs
+robots Pure i9. L'intégration passe par l'**API officielle Electrolux Group
+Developer** (developer.electrolux.one), avec le compte de votre application
+Electrolux ou AEG.
 
-## Ce que vous obtenez
+> **Développée sans le matériel ni compte Electrolux : vos retours sont les
+> bienvenus.** Le code est vérifié sur de vraies réponses de l'API publiées avec
+> le SDK officiel d'Electrolux, pas encore sur un appareil réel.
+>
+> Intégration communautaire, **non affiliée à Electrolux Group**. Electrolux,
+> AEG, Zanussi et Frigidaire sont des marques de leurs propriétaires.
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+## Présentation
+
+Chaque appareil du compte devient un appareil Gladys. Ses fonctionnalités sont
+construites à partir de ce que l'appareil déclare à Electrolux (ses
+« capacités »), pas d'une liste de modèles : un lave-linge sans capteur de porte
+n'a pas de porte, un réfrigérateur à trois compartiments a ses trois consignes.
+
+- **Lave-linge, lavantes-séchantes, sèche-linge, lave-vaisselle** : état
+  (éteint, prêt, départ différé, en marche, en pause, terminé, alarme),
+  programme, phase du cycle, temps restant, fin prévue, délai avant un départ
+  différé, porte, « départ à distance armé », alertes.
+- **Fours** (simple ou double cavité) : état, programme, température de la
+  cavité, consigne (en lecture seule), sonde à cœur, temps restant, fin prévue,
+  porte, éclairage.
+- **Réfrigérateurs** : consigne de chaque compartiment (réfrigérateur,
+  congélateur, compartiment modulable), porte de chaque compartiment, mode
+  rapide, humidité, filtres à eau et à air, alertes (porte restée ouverte,
+  alarme de température).
+- **Climatiseurs** (classiques et nouveaux modèles mobiles « DAM ») : marche,
+  mode, consigne, vitesse de ventilation, température de la pièce, filtre.
+- **Purificateurs d'air** : marche, mode, vitesse, PM2.5, PM10, composés
+  organiques volatils, CO2, humidité, température, durée de vie du filtre, selon
+  le modèle.
+- **Déshumidificateurs** : marche, humidité, filtre. **Aspirateurs robots** :
+  état et batterie. **Tables de cuisson et hottes** : état et alertes.
+
+S'y ajoutent un widget des cycles en cours, deux déclencheurs de scène (« cycle
+terminé », « alerte d'un appareil ») et une action de scène pour mettre en
+pause, reprendre, arrêter — et, si vous l'autorisez, démarrer — un cycle.
+
+## Prérequis
+
+- Gladys **5.1.0** ou plus récent.
+- Vos appareils associés dans l'application **Electrolux** ou **AEG** (My
+  Electrolux, My AEG, Electrolux Kitchen…), avec un mot de passe sur le compte
+  (un compte créé uniquement avec Google ou Apple ne peut pas se connecter au
+  portail : ajoutez d'abord un mot de passe depuis l'application).
+- Une connexion internet : Electrolux n'a pas d'API locale, tout passe par le
+  cloud Electrolux.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+1. Allez sur le **portail développeur Electrolux** (developer.electrolux.one)
+   et connectez-vous avec le compte de votre application.
+2. Dans le tableau de bord, **créez une clé d'API**. Copiez-la.
+3. Toujours dans le tableau de bord, **générez une paire de jetons** (jeton
+   d'accès et jeton de rafraîchissement). Copiez le **jeton de
+   rafraîchissement** : le jeton d'accès est inutile.
+4. Dans Gladys, ouvrez **Intégrations → Electrolux / AEG → Configuration**,
+   collez la **clé d'API** et le **jeton de rafraîchissement**, choisissez la
+   **langue** des noms de fonctionnalités et enregistrez.
+5. Cliquez sur **Tester la connexion** : le message liste vos appareils et les
+   appels d'API faits sur les dernières 24 heures.
+6. Ouvrez l'onglet **Découverte** et ajoutez les appareils voulus.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+**Le jeton de rafraîchissement ne sert qu'une fois.** À chaque renouvellement
+de l'accès (toutes les 12 heures), Electrolux donne un nouveau jeton de
+rafraîchissement et l'ancien cesse de fonctionner. L'intégration garde le jeton
+courant dans son propre stockage (`/data`) : vous ne collez un jeton **qu'une
+seule fois**. Si vous en collez un autre plus tard, il remplace celui qui est
+stocké. Ne réutilisez pas dans un autre outil le jeton collé dans Gladys : l'un
+des deux perdrait son accès.
 
-## Actions
+Le **départ à distance des lave-linge** est **désactivé** par défaut. N'activez
+« Autoriser le départ à distance des lave-linge » que si vous voulez qu'une
+scène démarre un lave-linge (voir « Commandes et sécurité »).
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+## Ce que fait chaque appareil
 
-## Scènes
+| Fonctionnalité                                       | Appareils                                               | Valeurs                                                                                      |
+| ---------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| État                                                 | tous                                                    | Éteint, Prêt à démarrer, Départ différé, En marche, En pause, Terminé, Alarme, Non connecté… |
+| Alertes                                              | quand l'appareil en signale                             | Les alertes actives en clair (« Manque de sel », « Porte restée ouverte »), « — » sinon      |
+| Programme, phase du cycle                            | linge, vaisselle, fours                                 | Nom du programme tel qu'Electrolux le nomme (anglais), phase dans votre langue               |
+| Temps restant, départ différé dans                   | linge, vaisselle, fours                                 | Minutes                                                                                      |
+| Fin prévue                                           | linge, vaisselle, fours                                 | Heure (« 14:35 »), « — » quand rien ne tourne                                                |
+| Porte                                                | linge, vaisselle, fours, compartiments du réfrigérateur | Ouverte / fermée                                                                             |
+| Départ à distance armé                               | linge, vaisselle                                        | Actif quand le départ à distance est activé sur l'appareil                                   |
+| Température, consigne, sonde à cœur                  | fours                                                   | °C, lecture seule                                                                            |
+| Éclairage                                            | fours                                                   | Allumé / éteint (pilotable)                                                                  |
+| Consigne, mode rapide                                | compartiments du réfrigérateur                          | °C dans la plage de l'appareil / marche-arrêt (pilotables)                                   |
+| Marche, mode, consigne, ventilation                  | climatiseurs                                            | Pilotables                                                                                   |
+| Marche, mode, vitesse                                | purificateurs                                           | Pilotables (vitesse en mode Manuel seulement)                                                |
+| PM2.5, PM10, COV, CO2, humidité, température, filtre | purificateurs                                           | Quand le modèle les mesure                                                                   |
+| Humidité, filtre                                     | réfrigérateurs, déshumidificateurs                      | % / Bon, À racheter bientôt, À remplacer, À nettoyer                                         |
+| Batterie                                             | aspirateurs robots                                      | % (six niveaux)                                                                              |
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+Chaque appareil affiche aussi un badge **cloud**, ou **injoignable** quand il
+n'est pas connecté au cloud Electrolux ; ses autres valeurs restent alors les
+dernières connues.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+## Commandes et sécurité
 
-## Tableau de bord
+La règle est celle de l'intégration Miele : **rien qui chauffe n'est démarré à
+distance**.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+- **Fours et tables de cuisson** : lecture seule, sauf l'éclairage du four. Un
+  four peut être **arrêté** par l'action de scène (le sens sûr), jamais démarré
+  ni réglé.
+- **Sèche-linge et lavantes-séchantes** : pause et arrêt seulement. Ni départ,
+  ni reprise (elle relancerait la chauffe).
+- **Lave-vaisselle** : pause, reprise, arrêt. Pas de départ à distance.
+- **Lave-linge** : pause, reprise, arrêt, et **départ** seulement si les trois
+  conditions sont réunies : « Autoriser le départ à distance des lave-linge »
+  est activé dans Gladys, le départ à distance est armé **sur la machine** (vous
+  l'avez chargée, avez choisi le programme et appuyé sur le bouton de départ à
+  distance), et la machine est prête à démarrer.
+- **Réfrigérateurs, climatiseurs, purificateurs, déshumidificateurs** : les
+  fonctionnalités sont pilotables (consignes, modes, marche-arrêt).
+
+Avant tout envoi, l'intégration vérifie que l'appareil est connecté, que son
+contrôle à distance est activé et qu'il accepte la commande dans son état
+actuel (Electrolux le décrit dans les capacités). Sinon la commande est refusée
+avec un message clair, plutôt qu'une erreur d'Electrolux.
+
+## Rafraîchissement et quotas
+
+L'API Electrolux autorise **5000 appels par jour et par clé d'API**, 10 par
+seconde et 5 simultanés. L'intégration reste bien en dessous :
+
+- elle écoute le **flux en direct** d'Electrolux : un changement (fin de cycle,
+  porte ouverte) arrive en quelques secondes, pour un appel par connexion ;
+- elle relit tout le compte toutes les **30 minutes**, par sécurité ;
+- quand le flux en direct est indisponible, elle relit aussi souvent que **2000
+  appels par jour** le permettent : environ toutes les 2 minutes avec un ou deux
+  appareils, toutes les 12 minutes avec quinze ;
+- les lectures s'arrêtent seules à 80 % du quota quotidien (les commandes
+  gardent une marge), et après une réponse « trop de requêtes » d'Electrolux,
+  pendant le délai demandé.
+
+Une lecture complète coûte un appel plus un par appareil ; les capacités d'un
+appareil sont lues une fois, puis seulement après une mise à jour de son
+logiciel. L'interrogation des appareils par Gladys (une fois par minute) n'est
+qu'un repli : elle est ignorée quand l'intégration vient de lire.
+
+## Widget
+
+Ajoutez le widget **Appareils Electrolux** à un tableau de bord : il liste les
+lave-linge, sèche-linge, lave-vaisselle et fours en marche, en attente d'un
+départ différé, en pause, en alarme, terminés ou prêts à démarrer — ceux en
+marche d'abord, avec le temps restant en pastille, le programme, la phase et la
+fin prévue. Quand rien ne tourne, une ligne le dit. Il suit la langue de votre
+interface Gladys.
+
+## Déclencheurs et actions de scène
+
+- **Déclencheur « Cycle Electrolux terminé »** : un lave-linge, sèche-linge,
+  lave-vaisselle ou four a terminé son programme. Filtrez sur un appareil, ou
+  laissez vide pour tous. Variables : nom de l'appareil, programme.
+- **Déclencheur « Alerte d'un appareil Electrolux »** : un appareil lève une
+  nouvelle alerte (porte restée ouverte, fuite d'eau, sel manquant, filtre à
+  remplacer, alarme…). Un événement par nouvelle alerte. Variables : nom de
+  l'appareil, alerte en clair, code de l'alerte.
+- **Action « Piloter un cycle Electrolux »** : démarre (lave-linge, si
+  autorisé), met en pause, reprend ou arrête le programme d'un appareil.
+  Sortie : « commande envoyée ».
+
+## Exemples de scènes
+
+- **Linge prêt** : déclencheur « Cycle Electrolux terminé » sur le lave-linge →
+  envoyer « La lessive est finie ({{triggerEvent.data.program}}) » à la famille.
+- **Lessive en heures creuses** : le soir, chargez la machine, choisissez le
+  programme et appuyez sur le départ à distance. Une scène à 22 h 30 (heures
+  creuses) lance l'action « Piloter un cycle Electrolux » → démarrer.
+- **Porte du réfrigérateur** : déclencheur « Alerte d'un appareil Electrolux »
+  sur le réfrigérateur → envoyer « {{triggerEvent.data.device_name}} :
+  {{triggerEvent.data.alert}} ».
+- **Rafraîchir la chambre** : quand la température de la chambre dépasse
+  26 °C, allumer le climatiseur en mode refroidissement à 24 °C.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Electrolux a refusé la clé d'API ou les jetons »** : le jeton de
+  rafraîchissement a été utilisé ailleurs ou révoqué. Générez une nouvelle paire
+  de jetons sur le portail et collez le nouveau jeton de rafraîchissement dans
+  la configuration.
+- **« Quota de l'API Electrolux atteint »** : un autre outil utilise la même clé
+  d'API, ou de nombreux redémarrages ont eu lieu. Les lectures reprennent
+  seules ; créez une clé d'API distincte par outil.
+- **Aucun appareil** : vérifiez que les appareils sont associés dans
+  l'application Electrolux ou AEG avec le même compte, puis cliquez sur
+  **Tester la connexion**.
+- **Une commande est refusée** : le message dit pourquoi — contrôle à distance
+  désactivé sur l'appareil, appareil non connecté, commande non acceptée dans
+  son état actuel (mettez en pause avant d'arrêter), ou départ à distance non
+  autorisé.
+- **Les valeurs changent en retard** : le flux en direct n'est peut-être pas
+  disponible pour votre clé ; l'intégration relit alors toutes les quelques
+  minutes (voir « Rafraîchissement et quotas »).
+- **Journaux** : ils sont volontairement calmes. Mettez `LOG_LEVEL=debug` pour
+  voir chaque lecture et chaque état envoyé.
+
+## Limites
+
+- Développée sans le matériel ni compte : le comportement sur de vrais
+  appareils reste à confirmer. Vos retours sont les bienvenus.
+- Les noms de programmes viennent d'Electrolux, en anglais.
+- Les modes de climatiseur que Gladys ne connaît pas (Éco, par exemple) ne sont
+  pas proposés ; la fonctionnalité mode n'affiche alors pas de valeur.
+- Les réfrigérateurs donnent leurs consignes ; peu donnent la température
+  mesurée, affichée seulement quand l'appareil la fournit.
+- Les aspirateurs robots sont en lecture seule (état et batterie) ; hottes et
+  tables de cuisson montrent leur état et leurs alertes.
+- Les programmes se choisissent sur l'appareil : l'intégration ne choisit ni
+  programme ni options.
+- Les chiffres du quota viennent du portail développeur, tels que d'autres
+  projets les rapportent ; Electrolux peut les changer.
+
+## Données et vie privée
+
+La clé d'API et le jeton de rafraîchissement collés restent dans la
+configuration de Gladys ; les jetons courants sont gardés dans le stockage
+propre de l'intégration (`/data`, lisible par elle seule). Aucun n'apparaît
+jamais dans les journaux. L'intégration ne parle qu'à
+`api.developer.electrolux.one` et à l'adresse du flux en direct donnée par
+Electrolux.

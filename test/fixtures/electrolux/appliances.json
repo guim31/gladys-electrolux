@@ -1,0 +1,92 @@
+[
+  {
+    "applianceId": "900000001_00:10000001-0A0000000001",
+    "applianceName": "Lave-linge",
+    "applianceType": "WM",
+    "created": "2025-02-11T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000002_00:10000002-0A0000000002",
+    "applianceName": "Lavante-séchante",
+    "applianceType": "WD",
+    "created": "2025-03-12T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000003_00:10000003-0A0000000003",
+    "applianceName": "Sèche-linge",
+    "applianceType": "TD",
+    "created": "2025-04-13T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000004_00:10000004-0A0000000004",
+    "applianceName": "Lave-vaisselle",
+    "applianceType": "DW",
+    "created": "2025-05-14T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000005_00:10000005-0A0000000005",
+    "applianceName": "Four",
+    "applianceType": "OV",
+    "created": "2025-06-15T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000006_00:10000006-0A0000000006",
+    "applianceName": "Double four",
+    "applianceType": "SO",
+    "created": "2025-07-16T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000007_00:10000007-0A0000000007",
+    "applianceName": "Table de cuisson",
+    "applianceType": "HB",
+    "created": "2025-08-17T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000008_00:10000008-0A0000000008",
+    "applianceName": "Hotte",
+    "applianceType": "HD",
+    "created": "2025-09-18T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000009_00:10000009-0A0000000009",
+    "applianceName": "Réfrigérateur",
+    "applianceType": "CR",
+    "created": "2025-01-19T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000010_00:10000010-0A0000000010",
+    "applianceName": "Climatiseur fenêtre",
+    "applianceType": "AC",
+    "created": "2025-02-10T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "1:900000011_00:10000011-0A0000000011",
+    "applianceName": "Climatiseur mobile",
+    "applianceType": "DAM_AC",
+    "created": "2025-03-11T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000012000000000000012",
+    "applianceName": "Purificateur chambre",
+    "applianceType": "Muju",
+    "created": "2025-04-12T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000013_00:10000013-0A0000000013",
+    "applianceName": "Déshumidificateur",
+    "applianceType": "DH",
+    "created": "2025-05-13T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000014000000000000014",
+    "applianceName": "Robot",
+    "applianceType": "PUREi9",
+    "created": "2025-06-14T08:00:00.000+00:00"
+  },
+  {
+    "applianceId": "900000015000000000000015",
+    "applianceName": "Purificateur salon",
+    "applianceType": "PUREA9",
+    "created": "2025-05-28T12:38:32.739+00:00"
+  }
+]

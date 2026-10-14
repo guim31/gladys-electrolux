@@ -1,41 +1,25 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene actions (manifest `scene_actions`) and the keys of the scene triggers
+// the hub fires (manifest `scene_triggers`). Keys are forever once published.
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
-//
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// `appliance_command`: start, pause, resume or stop the program of an
+// appliance. "Start" is for a washing machine only, needs the remote start
+// toggle of the integration (off by default) and remote start armed on the
+// machine: that is how an off-peak start works with Gladys — load the
+// machine, choose the program, press remote start on it, and let a scheduled
+// scene start it. Nothing that heats is started or resumed (src/commands.js).
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+import { TRIGGERS } from './hub.js';
 
-const logger = createLogger({ name: 'scenes' });
+export const SCENE_TRIGGER_KEYS = Object.values(TRIGGERS);
 
-export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
-  },
-};
+/** Handlers of the scene actions, by key. */
+export function createSceneActions({ hub }) {
+  return {
+    async appliance_command(fields) {
+      await hub.runCommand(fields.device, fields.command);
+      return { sent: true };
+    },
+  };
+}
